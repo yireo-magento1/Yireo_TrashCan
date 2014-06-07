@@ -1,0 +1,40 @@
+<?php
+/**
+ * Yireo TrashCan for Magento
+ *
+ * @package Yireo_TrashCan
+ * @author Yireo (http://www.yireo.com/)
+ * @copyright Copyright 2012 Yireo (http://www.yireo.com/)
+ * @license Open Software License
+ * @link http://www.yireo.com
+ */
+?>
+
+<div class="content-header">
+<table cellspacing="0">
+	<tr>
+		<td style="width:80%;"><h3 class="icon-head head-tag"><?php echo $this->getHeader(); ?></h3></td>
+	</tr>
+</table>
+</div>
+
+<div class="entry-edit">
+    <form method="post" action="<?php echo $this->getUrl('trashcan/index/index'); ?>" name="trashcan_form" id="trashcan_form">
+    <?php echo $this->getGridHtml() ?>
+    </form>
+</div>
+
+<script type="text/javascript">
+var trashcanForm = new varienForm('trashcan_form');
+//trashcanForm.submit = function(url) {
+//    alert('test: ' + url);
+//}
+</script>
+
+<div style="text-align:center;">
+<div style="font-size:90%; color:#575757; padding-top:20px;">
+        TrashCan v<?php echo $this->getVersion(); ?> &nbsp; - &nbsp;
+        Copyright &copy; 2012 <a href="http://www.yireo.com/" target="_new">Yireo</a>
+        <img src="<?php echo $this->getSkinUrl('images/trashcan/yireo.png'); ?>" style="display:inline;padding-left:5px" />
+</div>
+</div>

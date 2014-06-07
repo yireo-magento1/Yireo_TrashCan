@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Yireo TrashCan for Magento
+ *
+ * @package Yireo_TrashCan
+ * @author Yireo (http://www.yireo.com/)
+ * @copyright Copyright 2014 Yireo (http://www.yireo.com/)
+ * @license Open Source License (OSL v3)
+ * @link http://www.yireo.com
+ */
+-->
+<config>
+    <tabs>
+        <yireo translate="label" module="trashcan">
+            <label>Yireo</label>
+            <sort_order>900</sort_order>
+        </yireo>
+    </tabs>
+    <sections>
+        <trashcan translate="label">
+            <label>Trash Can</label>
+            <tab>yireo</tab>
+            <frontend_type>text</frontend_type>
+            <sort_order>342</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>0</show_in_website>
+            <show_in_store>0</show_in_store>
+            <groups>
+                <settings translate="label">
+                    <label>Settings</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>1</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>0</show_in_website>
+                    <show_in_store>0</show_in_store>
+                    <fields>
+                        <enable_cms_page translate="label">
+                            <label>Use trash for CMS-pages?</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </enable_cms_page>
+                        <enable_cms_block translate="label">
+                            <label>Use trash for CMS-blocks?</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </enable_cms_block>
+                        <enable_catalog_product translate="label">
+                            <label>Use trash for products?</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </enable_catalog_product>
+                    </fields>
+                </settings>
+                <manager translate="label">
+                    <label>Manager</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>2</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>0</show_in_website>
+                    <show_in_store>0</show_in_store>
+                    <fields>
+                        <only_show_allowed translate="label">
+                            <label>Only show allowed items</label>
+                            <comment><![CDATA[Only show trashed items that current admin-user has access to]]></comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </only_show_allowed>
+                    </fields>
+                </manager>
+            </groups>
+        </trashcan>
+    </sections>
+</config>

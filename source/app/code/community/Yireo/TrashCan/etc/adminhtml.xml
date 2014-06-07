@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Yireo TrashCan for Magento
+ *
+ * @package Yireo_TrashCan
+ * @author Yireo (http://www.yireo.com/)
+ * @copyright Copyright 2014 Yireo (http://www.yireo.com/)
+ * @license Open Source License (OSL v3)
+ * @link http://www.yireo.com
+ */
+-->
+<config>
+    <menu>
+        <system>
+            <children>
+                <trashcan translate="title" module="trashcan">
+                    <title>Trashed Items</title>
+                    <action>trashcan/index/index</action>
+                </trashcan>
+            </children>
+        </system>
+    </menu>
+    <translate>
+        <modules>
+            <Yireo_TrashCan>
+                <files>
+                    <default>Yireo_TrashCan.csv</default>
+                </files>
+            </Yireo_TrashCan>
+        </modules>
+    </translate>
+    <acl>
+        <resources>
+            <admin>
+                <children>
+                    <system>
+                        <children>
+                            <config>
+                                <children>
+                                    <trashcan translate="title" module="trashcan">
+                                        <title>TrashCan Section</title>
+                                    </trashcan>
+                                </children>
+                            </config>
+                            <trashcan translate="title" module="trashcan">
+                                <title>Trashed Items</title>
+                                <children>
+                                    <owner translate="title" module="trashcan">
+                                        <title>Handle Own Items</title>
+                                    </owner>
+                                    <all translate="title" module="trashcan">
+                                        <title>Handle All Items</title>
+                                    </all>
+                                </children>
+                            </trashcan>
+                        </children>
+                    </system>
+                </children>
+            </admin>
+        </resources>
+    </acl>
+</config>

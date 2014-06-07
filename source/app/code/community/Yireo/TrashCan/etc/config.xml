@@ -1,0 +1,138 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Yireo TrashCan for Magento
+ *
+ * @package Yireo_TrashCan
+ * @author Yireo (http://www.yireo.com/)
+ * @copyright Copyright 2014 Yireo (http://www.yireo.com/)
+ * @license Open Source License (OSL v3)
+ * @link http://www.yireo.com
+ */
+-->
+<config>
+
+    <modules>
+        <Yireo_TrashCan>
+            <version>1.0.10</version>
+        </Yireo_TrashCan>
+    </modules>
+
+    <global>
+        <blocks>
+            <trashcan>
+                <class>Yireo_TrashCan_Block</class>
+            </trashcan>
+        </blocks>
+
+        <helpers>
+            <trashcan>
+                <class>Yireo_TrashCan_Helper</class>
+            </trashcan>
+        </helpers>
+
+        <models>
+            <trashcan>
+                <class>Yireo_TrashCan_Model</class>
+                <resourceModel>trashcan_mysql4</resourceModel>
+            </trashcan>
+            <trashcan_mysql4>
+                <class>Yireo_TrashCan_Model_Mysql4</class>
+                <entities>
+                    <object>
+                        <table>trashcan_object</table>
+                    </object>
+                </entities>
+            </trashcan_mysql4>
+        </models>
+
+		<events>
+			<model_delete_before>
+				<observers>
+					<trashcan_observer>
+						<type>singleton</type>
+						<class>trashcan/observer</class>
+						<method>modelDeleteBefore</method>
+					</trashcan_observer>
+				</observers>
+			</model_delete_before>
+		</events>
+
+        <resources>
+            <trashcan_setup>
+                <setup>
+                    <module>Yireo_TrashCan</module>
+                    <class>Mage_Catalog_Model_Resource_Eav_Mysql4_Setup</class>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </trashcan_setup>
+            <trashcan_write>
+                <connection>
+                    <use>core_write</use>
+                </connection>
+            </trashcan_write>
+            <trashcan_read>
+                <connection>
+                    <use>core_read</use>
+                </connection>
+            </trashcan_read>
+        </resources>
+
+	</global>
+
+    <adminhtml>
+        <translate>
+            <modules>
+                <Yireo_TrashCan>
+                    <files>
+                        <default>Yireo_TrashCan.csv</default>
+                    </files>
+                </Yireo_TrashCan>
+            </modules>
+        </translate>
+        <acl>
+            <resources>
+                <admin>
+                    <children>
+                        <system>
+                            <children>
+                                <config>
+                                    <children>
+                                        <trashcan translate="title" module="trashcan">
+                                            <title>TrashCan Section</title>
+                                        </trashcan>
+                                    </children>
+                                </config>
+                            </children>
+                        </system>
+                    </children>
+                </admin>
+            </resources>
+        </acl>
+    </adminhtml>
+
+    <admin>
+        <routers>
+            <trashcan>
+                <use>admin</use>
+                <args>
+                    <module>Yireo_TrashCan</module>
+                    <frontName>trashcan</frontName>
+                </args>
+            </trashcan>
+        </routers>
+    </admin>
+
+    <default>
+        <trashcan>
+            <settings>
+                <enable_cms_page>1</enable_cms_page>
+                <enable_cms_block>1</enable_cms_block>
+                <enable_catalog_product>1</enable_catalog_product>
+                <only_show_allowed>1</only_show_allowed>
+            </settings>
+        </trashcan>
+    </default>
+</config>

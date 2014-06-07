@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Yireo TrashCan for Magento
+ *
+ * @package Yireo_TrashCan
+ * @author Yireo (http://www.yireo.com/)
+ * @copyright Copyright 2014 Yireo (http://www.yireo.com/)
+ * @license Open Software License
+ * @link http://www.yireo.com
+ */
+-->
+<config>
+    <modules>
+        <Yireo_TrashCan>
+            <active>true</active>
+            <codePool>community</codePool>
+        </Yireo_TrashCan>
+    </modules>
+</config>
