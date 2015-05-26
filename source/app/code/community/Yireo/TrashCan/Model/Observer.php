@@ -11,7 +11,7 @@
 
 class Yireo_TrashCan_Model_Observer extends Mage_Core_Model_Abstract
 {
-    /*
+    /**
      * Method that is thrown with the event "model_delete_before"
      *
      * @access public
@@ -38,13 +38,15 @@ class Yireo_TrashCan_Model_Observer extends Mage_Core_Model_Abstract
         
         // Create a new object
         $trashObject = Mage::getModel('trashcan/object');
-        if($trashObject->loadFromObject($currentObject)) {
+
+        if($trashObject->loadFromObject($currentObject, $currentResourceClass)) {
             $trashObject->save();
+
         } else {
 			Mage::getSingleton('adminhtml/session')->addError('Unable to create trashcan-object');
         }
 
         // Return nothing
-        return null;
+        return $this;
     }
 }

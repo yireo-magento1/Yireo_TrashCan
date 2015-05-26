@@ -14,7 +14,7 @@
 
     <modules>
         <Yireo_TrashCan>
-            <version>1.0.10</version>
+            <version>1.1.1</version>
         </Yireo_TrashCan>
     </modules>
 
@@ -131,6 +131,7 @@
                 <enable_cms_page>1</enable_cms_page>
                 <enable_cms_block>1</enable_cms_block>
                 <enable_catalog_product>1</enable_catalog_product>
+                <enable_catalog_category>1</enable_catalog_category>
                 <only_show_allowed>1</only_show_allowed>
             </settings>
         </trashcan>

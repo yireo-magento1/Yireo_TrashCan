@@ -1,6 +1,6 @@
 <?php
 /**
- * Yireo TrashCan for Magento 
+ * Yireo TrashCan for Magento
  *
  * @package     Yireo_TrashCan
  * @author      Yireo (http://www.yireo.com/)
@@ -20,18 +20,17 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
      * Common method
      *
      * @access protected
+     *
      * @param null
+     *
      * @return Yireo_TrashCan_IndexController
      */
     protected function _initAction()
     {
-        // @todo: Mage::helper('yireo')->addNotification('New version for TrashCan available', 'There is a new version of TrashCan available: ...', 'http://www.yireo.com/');
-
         $this->loadLayout()
             ->_setActiveMenu('system/trashcan')
             ->_addBreadcrumb(Mage::helper('adminhtml')->__('System'), Mage::helper('adminhtml')->__('System'))
-            ->_addBreadcrumb(Mage::helper('adminhtml')->__('Trashed Items'), Mage::helper('adminhtml')->__('Trashed Items'))
-        ;
+            ->_addBreadcrumb(Mage::helper('adminhtml')->__('Trashed Items'), Mage::helper('adminhtml')->__('Trashed Items'));
         return $this;
     }
 
@@ -39,7 +38,9 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
      * Overview page
      *
      * @access public
+     *
      * @param null
+     *
      * @return null
      */
     public function indexAction()
@@ -53,7 +54,9 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
      * Alias for overview
      *
      * @access public
+     *
      * @param null
+     *
      * @return null
      */
     public function gridAction()
@@ -65,27 +68,31 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
      * Delete action
      *
      * @access public
+     *
      * @param null
+     *
      * @return null
      */
     public function deleteAction()
     {
         // Load the objects
-        $object_ids = $this->getRequest()->getParam('object_id');
-        if(!is_array($object_ids)) $object_ids = array($object_ids);
+        $objectIds = $this->getRequest()->getParam('object_id');
+        if (!is_array($objectIds)) {
+            $objectIds = array($objectIds);
+        }
 
         // Delete the objects
-        if(!empty($object_ids)) {
-            foreach($object_ids as $object_id) {
-                $object = Mage::getModel('trashcan/object')->load($object_id);
-                if(Mage::helper('trashcan')->allowModify($object)) {
+        if (!empty($objectIds)) {
+            foreach ($objectIds as $objectId) {
+                $object = Mage::getModel('trashcan/object')->load($objectId);
+                if (Mage::helper('trashcan')->allowModify($object)) {
                     $object->delete();
                 }
             }
         }
 
         // Set a message
-        Mage::getModel('adminhtml/session')->addNotice($this->__('Deleted %s objects succesfully', count($object_ids)));
+        Mage::getModel('adminhtml/session')->addNotice($this->__('Deleted %s objects succesfully', count($objectIds)));
 
         // Redirect
         $this->_redirect('trashcan/index/index');
@@ -95,7 +102,9 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
      * Restore action
      *
      * @access public
+     *
      * @param null
+     *
      * @return null
      */
     public function restoreAction()
@@ -105,21 +114,23 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
         $fail = 0;
 
         // Load the objects
-        $object_ids = $this->getRequest()->getParam('object_id');
-        if(!is_array($object_ids)) $object_ids = array($object_ids);
+        $objectIds = $this->getRequest()->getParam('object_id');
+        if (!is_array($objectIds)) {
+            $objectIds = array($objectIds);
+        }
 
         // Redirect
-        if(empty($object_ids)) {
+        if (empty($objectIds)) {
             Mage::getModel('adminhtml/session')->addNotice($this->__('No objects selected'));
             $this->_redirect('trashcan/index/index');
         }
 
         // Restore the objects
-        foreach($object_ids as $object_id) {
-            $object = Mage::getModel('trashcan/object')->load($object_id);
-            if(Mage::helper('trashcan')->allowModify($object)) {
+        foreach ($objectIds as $objectId) {
+            $object = Mage::getModel('trashcan/object')->load($objectId);
+            if (Mage::helper('trashcan')->allowModify($object)) {
                 $result = $object->restore();
-                if($result == true) {
+                if ($result == true) {
                     $success++;
                 } else {
                     $fail++;
@@ -130,12 +141,12 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
         }
 
         // Set success-message
-        if($success > 0) {
+        if ($success > 0) {
             Mage::getModel('adminhtml/session')->addSuccess($this->__('Restored %s objects succesfully', $success));
         }
 
         // Set fail-message
-        if($fail > 0) {
+        if ($fail > 0) {
             Mage::getModel('adminhtml/session')->addError($this->__('Failed to restore %s objects', $fail));
         }
 

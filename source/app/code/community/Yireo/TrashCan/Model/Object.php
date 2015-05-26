@@ -26,13 +26,14 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
         $this->_init('trashcan/object');
     }
 
-    /*
+    /**
      * Method to fill this object with data from another to-be-removed object
      * 
-     * @param mixed $object
+     * @param Varien_Object $object
+     * @param string $resourceClass
      * @return boolean
      */
-    public function loadFromObject($object)
+    public function loadFromObject($object, $resourceClass)
     {
         // Add a label
         $label = $object->getData('name');
@@ -42,81 +43,19 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
         // Add the resource-model
         $resourceClass = preg_replace('/\//', '_', $object->getResourceName(), 1);
         if(empty($resourceClass)) {
-            $resourceClass = $object->getResourceName(); // @todo: Does this work?
+            $resourceClass = $object->getResourceName();
         }
 
-        // Load additional data of this object
-        if($resourceClass == 'catalog_product') {
-
-            // Add the product-type to the label
-            $label .= ' ['.$object->getTypeId().']';
-
-            // Set the current product
-            if(Mage::registry('product')) Mage::unregister('product');
-            if(Mage::registry('current_product')) Mage::unregister('current_product');
-            Mage::register('product', $object);
-            Mage::register('current_product', $object);
-
-            // Initialize the type-instance
-            $productType = $object->getTypeInstance(true);
-
-            // Bundled Products
-            if($object->getTypeId() == Mage_Catalog_Model_Product_Type::TYPE_BUNDLE) {
-
-                // Initialize data
-                $productOptionsData = array();
-                $productSelectionsData = array();
-
-                // Gather the bundle-options
-                $productOptions = Mage::getResourceModel('bundle/option_collection')->setProductIdFilter($object->getId());
-                foreach($productOptions as $productOptionId => $productOption) {
-
-                    $productOptionsData[$productOptionId] = array(
-                        'title' => 'Option '.$productOption->getData('option_id'),
-                        'default_title' => 'Option '.$productOption->getData('option_id'),
-                        'type' => $productOption->getData('type'),
-                        'required' => $productOption->getData('required'),
-                        'position' => $productOption->getData('position'),
-                        'option_id' => '',
-                        'delete' => '',
-                    );
-
-                    // Gather the bundle-product-selections
-                    $productSelections = Mage::getResourceModel('bundle/selection_collection')->setOptionIdsFilter(array($productOption->getData('option_id')));
-                    foreach($productSelections as $productSelection) {
-                        $productSelectionsData[$productOptionId][] = array(
-                            'product_id' => $productSelection->getData('product_id'),
-                            'selection_price_type' => $productSelection->getData('selection_price_type'),
-                            'selection_price_value' => $productSelection->getData('selection_price_value'),
-                            'selection_qty' => $productSelection->getData('selection_qty'),
-                            'selection_can_change_qty' => $productSelection->getData('selection_can_change_qty'),
-                            'position' => $productSelection->getData('position'),
-                            'selection_id' => '',
-                            'option_id' => '',
-                            'delete' => '',
-                        );
-                    }
-                }
-
-                // Set the bundle-data
-                $object = $this->setTrashcanData($object, 'bundle_options', $productOptionsData);
-                $object = $this->setTrashcanData($object, 'bundle_selections', $productSelectionsData);
-            }
-
-            // Add additional product-data
-            $stockItem = Mage::getModel('cataloginventory/stock_item')->loadByProduct($object->getId());
-            $stockData = $stockItem->getData();
-            $object = $this->setTrashcanData($object, 'stock_data', $stockData);
-            $object = $this->setTrashcanData($object, 'website_ids', $object->getWebsiteIds());
-            $object = $this->setTrashcanData($object, 'category_ids', $object->getCategoryIds());
-            $object = $this->setTrashcanData($object, 'images', Mage::helper('trashcan/product')->backupImages($object));
-
-            // Unset certain values
-            $object->setMediaGallery(array());
-            $object->setRelatedProduct(null);
+        // Run the data through the parser model
+        $parserModel = Mage::helper('trashcan')->getParserModel($resourceClass);
+        if (!empty($parserModel)) {
+            $parserModel->setData($object->getData());
+            $parserModel->prepare();
+            $object->setData($parserModel->getData());
         }
 
         // Add the resource-data
+        $object->setTrashcanResourceClass($resourceClass);
         $this->setResourceData(serialize($object));
 
         // Set extra meta-data
@@ -129,7 +68,7 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
         return true;
     }
 
-    /*
+    /**
      * Helper-method to add meta-data to the object
      * 
      * @param object $object
@@ -146,7 +85,7 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
         return $object;
     }
 
-    /*
+    /**
      * Helper-method to retrieve meta-data from the object
      * 
      * @param mixed $object
@@ -164,7 +103,7 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
         return null; 
     }
 
-    /*
+    /**
      * Restore-method
      * 
      * @param null
@@ -200,70 +139,18 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
         $object = unserialize($this->getResourceData());
         $object->setId(null);
 
-        // Load meta-data
-        $trashcanData = $object->getData('trashcan_data');
-
-        // Product-specific unserializing
-        if($resourceClass == 'catalog/product') {
-
-            // Reset the media-gallery
-            $object->setMediaGallery(array('images' => array()));
-
-            // Specific things for bundled products
-            if($object->getTypeId() == Mage_Catalog_Model_Product_Type::TYPE_BUNDLE) {
-                $object->setCanSaveCustomOptions(true);
-                $object->setCanSaveBundleSelections(true);
-                $object->setAffectBundleProductSelections(true);
-                if(Mage::registry('product')) Mage::unregister('product');
-                if(Mage::registry('current_product')) Mage::unregister('current_product');
-                Mage::register('product', $object);
-                Mage::register('current_product', $object);
-            }
-
-            // Load additional data of this object
-            if(!empty($trashcanData)) {
-                foreach($trashcanData as $trashcanId => $trashcanValue) {
-                    switch($trashcanId) {
-                        case 'stock_data':
-                            $storedStockData = $trashcanValue;
-                            break;
-                        case 'website_ids':
-                            $object->setWebsiteIds($trashcanValue);
-                            break;
-                        case 'category_ids':
-                            $object->setCategoryIds($trashcanValue);
-                            break;
-                        case 'images':
-                            $object = Mage::helper('trashcan/product')->restoreImages($object, $trashcanValue);
-                            $storedProductImages = $trashcanValue;
-                            break;
-                        case 'bundle_options':
-                            $bundleOptionsData = $trashcanValue;
-                            $object->setBundleOptionsData($bundleOptionsData);
-                            //$optionModel = Mage::getModel('bundle/option')->addSelection
-                            break;
-                        case 'bundle_selections':
-                            $bundleSelectionsData = $trashcanValue;
-                            // @todo: Check whether product-ID is still valid
-                            $object->setBundleSelectionsData($bundleSelectionsData);
-                            break;
-                    }
-                }
-            }
-        }
-
-        // Category-specific unserializing
-        if($resourceClass == 'catalog/category') {
-        }
-
-        // Customer-specific unserializing
-        if($resourceClass == 'customer/customer') {
+        // Run the data through the parser model
+        $parserModel = Mage::helper('trashcan')->getParserModel($this->getResourceClass());
+        if (!empty($parserModel)) {
+            $parserModel->setData($object->getData());
+            $parserModel->restore();
+            $object->setData($parserModel->getData());
         }
 
         // Save it with the resource
         $resourceModel->beginTransaction();
         try {
-            $rt = $resourceModel->save($object);
+            $resourceModel->save($object);
 
         } catch (Exception $e){
             $resourceModel->rollBack();
@@ -273,63 +160,29 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
 
         // Commit the resource
         try {
-            $rt = $resourceModel->commit();
+            $resourceModel->commit();
         } catch (Exception $e){
             $resourceModel->rollBack();
             Mage::getModel('adminhtml/session')->addError(Mage::helper('trashcan')->__('Commit failed: '.$e->getMessage()));
             return false;
         }
 
-        // Post-restore procedures
-        if($resourceClass == 'catalog/product') {
-
-            $product = Mage::getModel('catalog/product')->load($object->getId());
-
-            if(!empty($product)) {
-            
-                // Restore labels && position of images
-                if(!empty($storedProductImages)) {
-                    $gallery = $product->getData('media_gallery');
-                    foreach($gallery['images'] as $imageIndex => $image) {
-                        foreach($storedProductImages as $storedProductImage) {
-                            if(basename($image['file']) == basename($storedProductImage['file'])) {
-                                $image['label'] = $storedProductImage['label'];
-                                $image['position'] = $storedProductImage['position'];
-                                $gallery['images'][$imageIndex] = $image;
-                                break;
-                            }
-                        }
-                    }
-                    $product->setData('media_gallery', $gallery);
-                }
-
-                // Check for stock-data
-                if(!empty($storedStockData)) {
-                    if(isset($storedStockData['item_id'])) unset($storedStockData['item_id']);
-                    if(isset($storedStockData['product_id'])) unset($storedStockData['product_id']);
-                    if(isset($storedStockData['stock_id'])) unset($storedStockData['stock_id']);
-                    $product->setStockData($storedStockData);
-                }
-
-                // Re-save the product
-                $product->save();
+        // Try to find the last inserted ID
+        if (!$object->getId() > 0) {
+            if ($resourceModel->lastInsertId() > 0) {
+                $object->setId($resourceModel->lastInsertId());
             }
         }
 
-        // Remove the trashed item itself
+        // Post-restore procedures
+        if (!empty($parserModel)) {
+            $parserModel->setData($object->getData());
+            $parserModel->postRestore();
+        }
+
+        // Remove the trashed item
         $this->delete();
 
         return true;
-    }
-
-    /*
-     * Delete-method
-     * 
-     * @param null
-     * @return mixed
-     */
-    public function delete()
-    {
-        return parent::delete();
     }
 }
