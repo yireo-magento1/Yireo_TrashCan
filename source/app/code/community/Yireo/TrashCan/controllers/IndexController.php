@@ -45,6 +45,8 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
      */
     public function indexAction()
     {
+        Mage::helper('trashcan')->redirectOnWrongPhpVersion();
+
         $this->_initAction()
             ->_addContent($this->getLayout()->createBlock('trashcan/overview'))
             ->renderLayout();
@@ -75,6 +77,8 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
      */
     public function deleteAction()
     {
+        Mage::helper('trashcan')->redirectOnWrongPhpVersion();
+
         // Load the objects
         $objectIds = $this->getRequest()->getParam('object_id');
         if (!is_array($objectIds)) {
@@ -109,6 +113,8 @@ class Yireo_TrashCan_IndexController extends Mage_Adminhtml_Controller_Action
      */
     public function restoreAction()
     {
+        Mage::helper('trashcan')->redirectOnWrongPhpVersion();
+
         // Counter
         $success = 0;
         $fail = 0;

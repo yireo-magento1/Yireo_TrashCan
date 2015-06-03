@@ -20,6 +20,10 @@ class Yireo_TrashCan_Model_Observer extends Mage_Core_Model_Abstract
      */
     public function modelDeleteBefore($observer)
     {
+        if (Mage::helper('trashcan')->redirectOnWrongPhpVersion()) {
+            exit;
+        }
+
         // Fetch the event-object
         $currentObject = $observer->getEvent()->getObject();
         $currentResourceClass = str_replace('/','_', $currentObject->getResourceName());

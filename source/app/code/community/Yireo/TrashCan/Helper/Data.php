@@ -12,6 +12,40 @@
 class Yireo_TrashCan_Helper_Data extends Mage_Core_Helper_Abstract
 {
     /**
+     * Check for the right PHP version
+     *
+     * @return bool
+     */
+    public function hasRightPhpVersion()
+    {
+        $phpversion = phpversion();
+
+        if (version_compare($phpversion, '5.4.0', 'lt')) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Redirect if the PHP version is not correct
+     */
+    public function redirectOnWrongPhpVersion()
+    {
+        if ($this->hasRightPhpVersion() == false) {
+            $link = 'https://www.yireo.com/software/magento-extensions/trashcan/faq#does-this-extension-work-under-php-5-3';
+            Mage::getModel('adminhtml/session')->addError($this->__('The Yireo Trashcan module requires PHP 5.4 to work. See our <a target="_new" href="%s">FAQ</a> for details', $link));
+            session_write_close();
+
+            Mage::app()->getFrontController()->getResponse()->setRedirect(Mage::getUrl('adminhtml/dashboard/index'));
+            Mage::app()->getResponse()->sendResponse();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Helper-method to return a specific setting
      *
      * @param string $name
