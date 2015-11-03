@@ -14,7 +14,7 @@
 
     <modules>
         <Yireo_TrashCan>
-            <version>1.1.2</version>
+            <version>1.1.3</version>
         </Yireo_TrashCan>
     </modules>
 
@@ -115,13 +115,13 @@
 
     <admin>
         <routers>
-            <trashcan>
-                <use>admin</use>
+            <adminhtml>
                 <args>
-                    <module>Yireo_TrashCan</module>
-                    <frontName>trashcan</frontName>
+                    <modules>
+                        <trashcan after="Mage_Adminhtml">Yireo_TrashCan</trashcan>
+                    </modules>
                 </args>
-            </trashcan>
+            </adminhtml>
         </routers>
     </admin>
 

@@ -19,7 +19,7 @@ class Yireo_TrashCan_Model_Object_Product_Type_Configurable extends Mage_Core_Mo
      */
     public function prepare(Mage_Catalog_Model_Product &$object)
     {
-        /* @var $productType Mage_Catalog_Model_Product_Type_Configurable */
+        /** @var $productType Mage_Catalog_Model_Product_Type_Configurable */
         $productType = $object->getTypeInstance();
         $object->setTrashcanData('configurable_product_attribute_ids', $productType->getUsedProductAttributeIds($object));
         $object->setTrashcanData('configurable_product_ids', $productType->getUsedProductIds($object));

@@ -16,7 +16,7 @@
             <children>
                 <trashcan translate="title" module="trashcan">
                     <title>Trashed Items</title>
-                    <action>trashcan/index/index</action>
+                    <action>adminhtml/trashcan/index</action>
                 </trashcan>
             </children>
         </system>

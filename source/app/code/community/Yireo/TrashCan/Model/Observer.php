@@ -14,7 +14,6 @@ class Yireo_TrashCan_Model_Observer extends Mage_Core_Model_Abstract
     /**
      * Method that is thrown with the event "model_delete_before"
      *
-     * @access public
      * @param Varien_Event_Observer $observer
      * @return Yireo_TrashCan_Model_Observer
      */

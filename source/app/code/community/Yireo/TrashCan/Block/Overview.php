@@ -11,7 +11,7 @@
 
 class Yireo_TrashCan_Block_Overview extends Mage_Adminhtml_Block_Widget_Container
 {
-    /*
+    /**
      * Constructor method
      */
     public function _construct()
@@ -34,7 +34,7 @@ class Yireo_TrashCan_Block_Overview extends Mage_Adminhtml_Block_Widget_Containe
         return $this->getChildHtml('grid');
     }
 
-    /*
+    /**
      * Helper to return the header of this page
      */
     public function getHeader()
@@ -45,8 +45,6 @@ class Yireo_TrashCan_Block_Overview extends Mage_Adminhtml_Block_Widget_Containe
     /**
      * Return the version
      *
-     * @access public
-     * @param null
      * @return string
      */
     public function getVersion()

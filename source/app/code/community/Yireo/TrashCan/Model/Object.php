@@ -16,8 +16,7 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
 {
     /**
      * Constructor
-     * 
-     * @param null
+     *
      * @return mixed
      */
     protected function _construct()
@@ -28,7 +27,7 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
 
     /**
      * Method to fill this object with data from another to-be-removed object
-     * 
+     *
      * @param Varien_Object $object
      * @param string $resourceClass
      * @return boolean
@@ -70,7 +69,7 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
 
     /**
      * Helper-method to add meta-data to the object
-     * 
+     *
      * @param object $object
      * @param string $name
      * @param mixed $data
@@ -87,7 +86,7 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
 
     /**
      * Helper-method to retrieve meta-data from the object
-     * 
+     *
      * @param mixed $object
      * @param string $name
      * @return mixed 
@@ -105,8 +104,7 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
 
     /**
      * Restore-method
-     * 
-     * @param null
+     *
      * @return boolean
      */
     public function restore()
