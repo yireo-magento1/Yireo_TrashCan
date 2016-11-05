@@ -4,17 +4,17 @@
  * Yireo TrashCan for Magento
  *
  * @package Yireo_TrashCan
- * @author Yireo (http://www.yireo.com/)
- * @copyright Copyright 2015 Yireo (http://www.yireo.com/)
+ * @author Yireo (https://www.yireo.com/)
+ * @copyright Copyright 2015 Yireo (https://www.yireo.com/)
  * @license Open Source License (OSL v3)
- * @link http://www.yireo.com
+ * @link https://www.yireo.com
  */
 -->
 <config>
 
     <modules>
         <Yireo_TrashCan>
-            <version>1.1.3</version>
+            <version>1.3.7</version>
         </Yireo_TrashCan>
     </modules>
 
@@ -46,17 +46,26 @@
             </trashcan_mysql4>
         </models>
 
-		<events>
-			<model_delete_before>
-				<observers>
-					<trashcan_observer>
-						<type>singleton</type>
-						<class>trashcan/observer</class>
-						<method>modelDeleteBefore</method>
-					</trashcan_observer>
-				</observers>
-			</model_delete_before>
-		</events>
+        <events>
+            <model_delete_before>
+                <observers>
+                    <trashcan_delete_before>
+                        <type>singleton</type>
+                        <class>trashcan/observer</class>
+                        <method>modelDeleteBefore</method>
+                    </trashcan_delete_before>
+                </observers>
+            </model_delete_before>
+            <model_delete_commit_after>
+                <observers>
+                    <trashcan_delete_after>
+                        <type>singleton</type>
+                        <class>trashcan/observer</class>
+                        <method>modelDeleteAfter</method>
+                    </trashcan_delete_after>
+                </observers>
+            </model_delete_commit_after>
+        </events>
 
         <resources>
             <trashcan_setup>
@@ -80,7 +89,7 @@
             </trashcan_read>
         </resources>
 
-	</global>
+    </global>
 
     <adminhtml>
         <translate>
@@ -133,6 +142,7 @@
                 <enable_catalog_product>1</enable_catalog_product>
                 <enable_catalog_category>1</enable_catalog_category>
                 <only_show_allowed>1</only_show_allowed>
+                <enable_debug>0</enable_debug>
             </settings>
         </trashcan>
     </default>

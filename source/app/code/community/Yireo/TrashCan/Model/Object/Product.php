@@ -3,10 +3,10 @@
  * Yireo TrashCan for Magento
  *
  * @package     Yireo_TrashCan
- * @author      Yireo (http://www.yireo.com/)
- * @copyright   Copyright 2015 Yireo (http://www.yireo.com/)
+ * @author      Yireo (https://www.yireo.com/)
+ * @copyright   Copyright 2015 Yireo (https://www.yireo.com/)
  * @license     Open Source License (OSL v3)
- * @link        http://www.yireo.com/
+ * @link        https://www.yireo.com/
  */
 
 /**
@@ -84,10 +84,6 @@ class Yireo_TrashCan_Model_Object_Product extends Mage_Catalog_Model_Product imp
         if(!empty($trashcanData)) {
             foreach($trashcanData as $trashcanId => $trashcanValue) {
                 switch($trashcanId) {
-                    case 'stock_data':
-                        $storedStockData = $trashcanValue;
-                        break;
-
                     case 'website_ids':
                         $this->setWebsiteIds($trashcanValue);
                         break;
@@ -105,40 +101,36 @@ class Yireo_TrashCan_Model_Object_Product extends Mage_Catalog_Model_Product imp
     }
 
     /**
+     * @param string $name
+     *
+     * @return mixed
+     */
+    protected function getAdditionalData($name)
+    {
+        $trashcanData = $this->getData('trashcan_data');
+
+        if (isset($trashcanData[$name])) {
+            return $trashcanData[$name];
+        }
+    }
+
+    /**
      * Method to run after this object has been restored
      */
     public function postRestore()
     {
-        Mage::helper('trashcan')->log('Restored data', $this->debug());
+        //Mage::helper('trashcan')->log('Restored data', $this->debug());
 
         $product = Mage::getModel('catalog/product')->load($this->getId());
 
         if(!empty($product)) {
 
-            // Restore labels && position of images
-            if(!empty($storedProductImages)) {
-                $gallery = $product->getData('media_gallery');
-                foreach($gallery['images'] as $imageIndex => $image) {
-                    foreach($storedProductImages as $storedProductImage) {
-                        if(basename($image['file']) == basename($storedProductImage['file'])) {
-                            $image['label'] = $storedProductImage['label'];
-                            $image['position'] = $storedProductImage['position'];
-                            $gallery['images'][$imageIndex] = $image;
-                            break;
-                        }
-                    }
-                }
-                $product->setData('media_gallery', $gallery);
-            }
+            $storedProductImages = $this->getAdditionalData('images');
+            Mage::helper('trashcan/product')->restoreImageLabels($product, $storedProductImages);
 
-            // Check for stock-data
-            if(!empty($storedStockData)) {
-                if(isset($storedStockData['item_id'])) unset($storedStockData['item_id']);
-                if(isset($storedStockData['product_id'])) unset($storedStockData['product_id']);
-                if(isset($storedStockData['stock_id'])) unset($storedStockData['stock_id']);
-                $product->setStockData($storedStockData);
-            }
-
+            $storedStockData = $this->getAdditionalData('stock_data');
+            Mage::helper('trashcan/product')->restoreStockData($product, $storedStockData);
+            
             // Re-save the product
             $product->save();
         }
@@ -154,6 +146,19 @@ class Yireo_TrashCan_Model_Object_Product extends Mage_Catalog_Model_Product imp
             $dataHandler = Mage::getModel('trashcan/object_product_type_configurable');
             $dataHandler->postRestore($this);
         }
+    }
+
+    /**
+     * Return searchable data
+     *
+     * @return array
+     */
+    public function getSearchData()
+    {
+        return array(
+            $this->getSku(),
+            $this->getName(),
+        );
     }
 
     /**

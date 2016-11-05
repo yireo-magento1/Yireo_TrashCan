@@ -3,8 +3,8 @@
  * Yireo TrashCan for Magento
  *
  * @package     Yireo_TrashCan
- * @author      Yireo (http://www.yireo.com/)
- * @copyright   Copyright 2015 Yireo (http://www.yireo.com/)
+ * @author      Yireo (https://www.yireo.com/)
+ * @copyright   Copyright 2015 Yireo (https://www.yireo.com/)
  * @license     Open Source License (OSL v3)
  */
 
@@ -141,7 +141,34 @@ class Yireo_TrashCan_TrashcanController extends Mage_Adminhtml_Controller_Action
         $this->_redirect('adminhtml/trashcan/index');
     }
 
+    /**
+     * Debug action
+     */
+    public function debugAction()
+    {
+        Mage::helper('trashcan')->redirectOnWrongPhpVersion();
 
+        // Load the objects
+        $objectIds = $this->getRequest()->getParam('object_id');
+        if (!is_array($objectIds)) {
+            $objectIds = array($objectIds);
+        }
+
+        // Delete the objects
+        if (!empty($objectIds)) {
+            foreach ($objectIds as $objectId) {
+                $object = Mage::getModel('trashcan/object')->load($objectId);
+                $resourceData = unserialize($object->getResourceData());
+                print_r($resourceData->getData());
+            }
+        }
+
+        exit;
+    }
+
+    /**
+     * @return bool
+     */
     protected function _isAllowed()
     {
         $aclResource = 'admin/system/trashcan';

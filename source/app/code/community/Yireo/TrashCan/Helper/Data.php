@@ -4,13 +4,18 @@
  * Yireo TrashCan for Magento
  *
  * @package     Yireo_TrashCan
- * @author      Yireo (http://www.yireo.com/)
- * @copyright   Copyright 2015 Yireo (http://www.yireo.com/)
+ * @author      Yireo (https://www.yireo.com/)
+ * @copyright   Copyright 2015 Yireo (https://www.yireo.com/)
  * @license     Open Source License (OSL v3)
- * @link        http://www.yireo.com/
+ * @link        https://www.yireo.com/
  */
 class Yireo_TrashCan_Helper_Data extends Mage_Core_Helper_Abstract
 {
+    /**
+     * @var Zend_Controller_Response_Http
+     */
+    protected $response;
+
     /**
      * Check for the right PHP version
      *
@@ -32,17 +37,19 @@ class Yireo_TrashCan_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function redirectOnWrongPhpVersion()
     {
-        if ($this->hasRightPhpVersion() == false) {
-            $link = 'https://www.yireo.com/software/magento-extensions/trashcan/faq#does-this-extension-work-under-php-5-3';
-            Mage::getModel('adminhtml/session')->addError($this->__('The Yireo Trashcan module requires PHP 5.4 to work. See our <a target="_new" href="%s">FAQ</a> for details', $link));
-            session_write_close();
-
-            Mage::app()->getFrontController()->getResponse()->setRedirect(Mage::getUrl('adminhtml/dashboard/index'));
-            Mage::app()->getResponse()->sendResponse();
-            return true;
+        if ($this->hasRightPhpVersion() == true) {
+            return false;
         }
 
-        return false;
+        $link = 'https://www.yireo.com/software/magento-extensions/trashcan/faq#does-this-extension-work-under-php-5-3';
+        $msg = 'The Yireo Trashcan module requires PHP 5.4 to work. See our <a target="_new" href="%s">FAQ</a> for details';
+        $this->getAdminhtmlSession()->addError($this->__($msg, $link));
+        session_write_close();
+
+        $this->response = Mage::app()->getResponse();
+        $this->response->setRedirect(Mage::getUrl('adminhtml/dashboard/index'));
+        $this->response->sendResponse();
+        return true;
     }
 
     /**
@@ -50,12 +57,17 @@ class Yireo_TrashCan_Helper_Data extends Mage_Core_Helper_Abstract
      *
      * @param string $name
      * @param mixed $default
+     *
      * @return mixed
      */
     public function setting($name, $group = 'settings', $default = null)
     {
         $value = Mage::getStoreConfig('trashcan/' . $group . '/' . $name);
-        if (empty($value)) $value = $default;
+
+        if (empty($value)) {
+            $value = $default;
+        }
+
         return $value;
     }
 
@@ -91,6 +103,7 @@ class Yireo_TrashCan_Helper_Data extends Mage_Core_Helper_Abstract
      * Helper-method to return the object parser for a specific data-type
      *
      * @param string $type
+     *
      * @return object|false
      */
     public function getParserModel($type)
@@ -110,23 +123,50 @@ class Yireo_TrashCan_Helper_Data extends Mage_Core_Helper_Abstract
      * Helper-method to determine whether the current user has access
      *
      * @param Yireo_TrashCan_Model_Object
+     *
      * @return boolean
      */
     public function allowModify($item)
     {
-        if (Mage::getSingleton('admin/session')->isAllowed('system/trashcan/all' == true)) {
+        if ($this->getAdminSession()->isAllowed('system/trashcan/all' === true)) {
             return true;
         }
 
-        if (Mage::getSingleton('admin/session')->isAllowed('system/trashcan/owner') == true) {
-            $itemUser = Mage::getModel('admin/user')->load($item->getData('trashed_by'));
-            $currentUser = Mage::getSingleton('admin/session')->getUser();
-            if ($currentUser->getId() == $itemUser->getId()) {
+        if ($this->getAdminSession()->isAllowed('system/trashcan/owner') === true) {
+            if ($this->isCurrentAdminId($item->getData('trashed_by'))) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * @param $adminId
+     *
+     * @return bool
+     */
+    protected function isCurrentAdminId($adminId)
+    {
+        $currentUser = $this->getAdminSession()->getUser();
+        if ($currentUser->getId() === $adminId) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTrashcanFolder()
+    {
+        $trashcanFolder = BP . DS . 'media' . DS . 'trashcan';
+        if (is_dir($trashcanFolder) === false) {
+            mkdir($trashcanFolder);
+        }
+
+        return $trashcanFolder;
     }
 
     /**
@@ -149,17 +189,51 @@ class Yireo_TrashCan_Helper_Data extends Mage_Core_Helper_Abstract
      *
      * @param string $variable
      * @param string $text
+     *
+     * @return bool
      */
     public function debug($variable, $text = null)
     {
-        $log = null;
-        if (!empty($text)) $log .= $text . " - ";
-        if (is_object($variable)) $log .= get_class($variable) . ": ";
+        if ($this->setting('enable_debug') == false) {
+            return false;
+        }
+
+        $log = '';
+
+        if (!empty($text)) {
+            $log .= $text . " - ";
+        }
+
+        if (is_object($variable)) {
+            $log .= get_class($variable) . ": ";
+        }
+
         $log .= var_export($variable, true);
 
-        if (!is_dir(BP . DS . 'var' . DS . 'log')) @mkdir(BP . DS . 'var' . DS . 'log');
+        if (!is_dir(BP . DS . 'var' . DS . 'log')) {
+            @mkdir(BP . DS . 'var' . DS . 'log');
+        }
+
         $tmp_file = BP . DS . 'var' . DS . 'log' . DS . 'trashcan.log';
 
         file_put_contents($tmp_file, $log . "\n", FILE_APPEND);
+
+        return true;
+    }
+
+    /**
+     * @return false|Mage_Adminhtml_Model_Session|Mage_Core_Model_Abstract
+     */
+    protected function getAdminhtmlSession()
+    {
+        return Mage::getModel('adminhtml/session');
+    }
+
+    /**
+     * @return Mage_Admin_Model_Session|Mage_Core_Model_Abstract
+     */
+    protected function getAdminSession()
+    {
+        return Mage::getSingleton('admin/session');
     }
 }

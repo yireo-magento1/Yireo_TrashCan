@@ -3,10 +3,10 @@
  * Yireo TrashCan for Magento
  *
  * @package     Yireo_TrashCan
- * @author      Yireo (http://www.yireo.com/)
- * @copyright   Copyright 2015 Yireo (http://www.yireo.com/)
+ * @author      Yireo (https://www.yireo.com/)
+ * @copyright   Copyright 2015 Yireo (https://www.yireo.com/)
  * @license     Open Source License (OSL v3)
- * @link        http://www.yireo.com/
+ * @link        https://www.yireo.com/
  */
 
 /**
@@ -28,4 +28,11 @@ interface Yireo_TrashCan_Model_Object_Contract
      * Method to run after this object has been restored
      */
     public function postRestore();
+
+    /**
+     * Return searchable data
+     * 
+     * @return mixed
+     */
+    public function getSearchData();
 }

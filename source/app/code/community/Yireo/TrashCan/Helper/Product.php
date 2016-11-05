@@ -4,13 +4,26 @@
  * Yireo TrashCan for Magento
  *
  * @package     Yireo_TrashCan
- * @author      Yireo (http://www.yireo.com/)
- * @copyright   Copyright 2015 Yireo (http://www.yireo.com/)
+ * @author      Yireo (https://www.yireo.com/)
+ * @copyright   Copyright 2015 Yireo (https://www.yireo.com/)
  * @license     Open Source License (OSL v3)
- * @link        http://www.yireo.com/
+ * @link        https://www.yireo.com/
  */
 class Yireo_TrashCan_Helper_Product extends Mage_Core_Helper_Abstract
 {
+    /**
+     * @var Yireo_TrashCan_Helper_Data
+     */
+    protected $helper;
+
+    /**
+     * Yireo_TrashCan_Helper_Product constructor.
+     */
+    public function __construct()
+    {
+        $this->helper = Mage::helper('trashcan');
+    }
+
     /**
      * Helper-method to return a specific setting
      *
@@ -18,44 +31,19 @@ class Yireo_TrashCan_Helper_Product extends Mage_Core_Helper_Abstract
      *
      * @return mixed
      */
-    public function backupImages($product)
+    public function backupImages(Mage_Catalog_Model_Product $product)
     {
-        $trashcanFolder = BP . DS . 'media' . DS . 'trashcan';
-        if (is_dir($trashcanFolder) == false) {
-            mkdir($trashcanFolder);
+        $images = $product->getMediaGallery('images');
+        if (empty($images)) {
+            return array();
         }
 
         $trashcanData = array();
-        $images = $product->getMediaGallery('images');
-        if (!empty($images)) {
-            foreach ($images as $image) {
+        foreach ($images as $image) {
+            $imageData = $this->backupImage($image, $product);
 
-                $image['type'] = array();
-                if ($image['file'] == $product->getSmallImage()) $image['type'][] = 'small_image';
-                if ($image['file'] == $product->getImage()) $image['type'][] = 'image';
-                if ($image['file'] == $product->getThumbnail()) $image['type'][] = 'thumbnail';
-
-                $sourceFile = BP . DS . 'media' . DS . 'catalog' . DS . 'product' . DS . $image['file'];
-                $destinationFile = $trashcanFolder . DS . basename($image['file']);
-
-                if (!is_file($sourceFile) || !is_readable($sourceFile)) {
-                    Mage::log('[Trashcan] Empty source-image ' . $sourceFile);
-                    continue;
-                }
-
-                if (copy($sourceFile, $destinationFile)) {
-                    $trashcanData[] = array(
-                        'file' => $destinationFile,
-                        'label' => $image['label'],
-                        'position' => $image['position'],
-                        'disabled' => $image['disabled'],
-                        'type' => $image['type'],
-                    );
-
-                    if (file_exists($sourceFile)) {
-                        unlink($sourceFile);
-                    }
-                }
+            if (!empty($imageData)) {
+                $trashcanData[] = $imageData;
             }
         }
 
@@ -63,23 +51,166 @@ class Yireo_TrashCan_Helper_Product extends Mage_Core_Helper_Abstract
     }
 
     /**
+     * @param array $image
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return bool
+     */
+    protected function backupImage($image, Mage_Catalog_Model_Product $product)
+    {
+        $trashcanFolder = $this->helper->getTrashcanFolder();
+        $sourceFile = BP . DS . 'media' . DS . 'catalog' . DS . 'product' . DS . $image['file'];
+        $destinationFile = $trashcanFolder . DS . basename($image['file']);
+
+        $image['type'] = $this->getImageTypesFromProduct($image['file'], $product);
+
+        if (!is_file($sourceFile) || !is_readable($sourceFile)) {
+            $this->helper->log('Empty source-image ' . $sourceFile);
+            return false;
+        }
+
+        if (!copy($sourceFile, $destinationFile)) {
+            return false;
+        }
+
+        $imageData = array(
+            'file' => $destinationFile,
+            'label' => $image['label'],
+            'position' => $image['position'],
+            'disabled' => $image['disabled'],
+            'type' => $image['type'],
+        );
+
+        if (file_exists($sourceFile)) {
+            unlink($sourceFile);
+        }
+
+        return $imageData;
+    }
+
+    /**
+     * @param string $imageFile
+     * @param Mage_Catalog_Model_Product $product
+     *
+     * @return array
+     */
+    protected function getImageTypesFromProduct($imageFile, Mage_Catalog_Model_Product $product)
+    {
+        $types = array();
+        if ($imageFile == $product->getSmallImage()) {
+            $types[] = 'small_image';
+        }
+
+        if ($imageFile == $product->getImage()) {
+            $types[] = 'image';
+        }
+
+        if ($imageFile == $product->getThumbnail()) {
+            $types[] = 'thumbnail';
+        }
+
+        return $types;
+    }
+
+    /**
      * Method to restore images from the trashed data
      *
-     * @param $product
-     * @param $trashcanData
+     * @param Mage_Catalog_Model_Product $product
+     * @param array $images
      *
-     * @return mixed
+     * @return bool
      */
-    public function restoreImages(&$product, $trashcanData)
+    public function restoreImages(Mage_Catalog_Model_Product &$product, $images)
     {
-        if (!empty($trashcanData)) {
-            foreach ($trashcanData as $image) {
-                $file = $image['file'];
-                if (file_exists($file)) {
-                    $disabled = (bool)$image['disabled'];
-                    $product = $product->addImageToMediaGallery($file, $image['type'], true, $disabled);
+        if (empty($images)) {
+            return false;
+        }
+
+        foreach ($images as $image) {
+            $this->restoreImage($product, $image);
+        }
+
+        return true;
+    }
+
+    /**
+     * Method to restore a single image
+     *
+     * @param Mage_Catalog_Model_Product $product
+     * @param array $image
+     *
+     * @return bool
+     */
+    protected function restoreImage(Mage_Catalog_Model_Product &$product, $image)
+    {
+        $file = $image['file'];
+        if (!file_exists($file)) {
+            return false;
+        }
+
+        $disabled = (bool)$image['disabled'];
+        $product = $product->addImageToMediaGallery($file, $image['type'], true, $disabled);
+
+        return true;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     * @param array $storedImages
+     *
+     * @return bool
+     */
+    public function restoreImageLabels(Mage_Catalog_Model_Product &$product, $storedImages)
+    {
+        if (empty($storedImages)) {
+            return false;
+        }
+
+        // Restore labels && position of images
+        $gallery = $product->getData('media_gallery');
+        foreach ($gallery['images'] as $imageIndex => $image) {
+            foreach ($storedImages as $storedImage) {
+                if (basename($image['file']) == basename($storedImage['file'])) {
+                    $image['label'] = $storedImage['label'];
+                    $image['position'] = $storedImage['position'];
+                    $gallery['images'][$imageIndex] = $image;
+                    break;
                 }
             }
         }
+
+        $product->setData('media_gallery', $gallery);
+
+        return true;
+    }
+
+    /**
+     * @param Mage_Catalog_Model_Product $product
+     * @param array $storedStockData
+     *
+     * @return bool
+     */
+    public function restoreStockData(Mage_Catalog_Model_Product &$product, $storedStockData)
+    {
+        if (empty($storedStockData)) {
+            return false;
+        }
+
+        // Check for stock-data
+        if (isset($storedStockData['item_id'])) {
+            unset($storedStockData['item_id']);
+        }
+
+        if (isset($storedStockData['product_id'])) {
+            unset($storedStockData['product_id']);
+        }
+
+        if (isset($storedStockData['stock_id'])) {
+            unset($storedStockData['stock_id']);
+        }
+
+        $product->setStockData($storedStockData);
+
+        return true;
     }
 }

@@ -3,17 +3,37 @@
  * Yireo TrashCan for Magento
  *
  * @package     Yireo_TrashCan
- * @author      Yireo (http://www.yireo.com/)
- * @copyright   Copyright 2015 Yireo (http://www.yireo.com/)
+ * @author      Yireo (https://www.yireo.com/)
+ * @copyright   Copyright 2016 Yireo (https://www.yireo.com/)
  * @license     Open Source License (OSL v3)
- * @link        http://www.yireo.com/
+ * @link        https://www.yireo.com/
  */
 
 /**
- * Trashed objects model
+ * Class Yireo_TrashCan_Model_Object
  */
 class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
 {
+    /**
+     * @var Mage_Admin_Model_User
+     */
+    protected $user;
+
+    /**
+     * @var Yireo_TrashCan_Helper_Data
+     */
+    protected $helper;
+
+    /**
+     * @var Mage_Adminhtml_Model_Session
+     */
+    protected $adminSession;
+
+    /**
+     * @var Mage_Core_Model_Abstract
+     */
+    protected $targetObject;
+
     /**
      * Constructor
      *
@@ -22,46 +42,47 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
     protected function _construct()
     {
         parent::_construct();
+
         $this->_init('trashcan/object');
+
+        $this->user = Mage::getModel('admin/session')->getUser();
+        $this->helper = Mage::helper('trashcan');
+        $this->adminSession = Mage::getModel('adminhtml/session');
     }
 
     /**
      * Method to fill this object with data from another to-be-removed object
      *
-     * @param Varien_Object $object
+     * @param Mage_Core_Model_Abstract $object
      * @param string $resourceClass
+     *
      * @return boolean
      */
     public function loadFromObject($object, $resourceClass)
     {
+        $this->targetObject = $object;
+
         // Add a label
-        $label = $object->getData('name');
-        if(empty($label)) $label = $object->getData('title');
-        if(empty($label)) $label = $object->getData('label');
+        $label = $this->getLabelFromObject();
 
         // Add the resource-model
-        $resourceClass = preg_replace('/\//', '_', $object->getResourceName(), 1);
-        if(empty($resourceClass)) {
-            $resourceClass = $object->getResourceName();
+        if (empty($resourceClass)) {
+            $resourceClass = $this->getResourceClassFromObject();
         }
 
         // Run the data through the parser model
-        $parserModel = Mage::helper('trashcan')->getParserModel($resourceClass);
-        if (!empty($parserModel)) {
-            $parserModel->setData($object->getData());
-            $parserModel->prepare();
-            $object->setData($parserModel->getData());
-        }
+        $searchData = $this->getSearchData($resourceClass);
 
         // Add the resource-data
-        $object->setTrashcanResourceClass($resourceClass);
-        $this->setResourceData(serialize($object));
+        $this->targetObject->setTrashcanResourceClass($resourceClass);
+        $targetObject = clone( $this->targetObject);
+        $this->setResourceObject($targetObject);
 
         // Set extra meta-data
-        $currentUser = Mage::getModel('admin/session')->getUser();
         $this->setLabel($label);
+        $this->setSearchData(implode('|', $searchData));
         $this->setResourceClass($resourceClass);
-        $this->setTrashedBy($currentUser->getId());
+        $this->setTrashedBy($this->user->getId());
         $this->setTrashedTimestamp(date('y-m-d H:i', time()));
 
         return true;
@@ -70,15 +91,20 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
     /**
      * Helper-method to add meta-data to the object
      *
-     * @param object $object
+     * @param Mage_Core_Model_Abstract $object
      * @param string $name
      * @param mixed $data
+     *
      * @return object
      */
     public function setTrashcanData($object, $name, $data)
     {
         $trashcanData = $object->getData('trashcan_data');
-        if(!is_array($trashcanData)) $trashcanData = array();
+
+        if (!is_array($trashcanData)) {
+            $trashcanData = array();
+        }
+
         $trashcanData[$name] = $data;
         $object->setData('trashcan_data', $trashcanData);
         return $object;
@@ -87,19 +113,35 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
     /**
      * Helper-method to retrieve meta-data from the object
      *
-     * @param mixed $object
+     * @param Mage_Core_Model_Abstract $object
      * @param string $name
-     * @return mixed 
+     *
+     * @return mixed
      */
     public function getTrashcanData($object, $name = null)
     {
         $trashcanData = $object->getData('trashcan_data');
-        if(isset($trashcanData[$name])) {
+        if (isset($trashcanData[$name])) {
             return $trashcanData[$name];
-        } elseif(empty($name)) {
+        }
+
+        if (empty($name)) {
             return $trashcanData;
-        } 
-        return null; 
+        }
+
+        return null;
+    }
+
+    /**
+     * Save-method
+     *
+     * @return Mage_Core_Model_Abstract
+     */
+    public function save()
+    {
+        $this->setResourceData(serialize($this->getResourceObject()));
+
+        return parent::save();
     }
 
     /**
@@ -110,77 +152,175 @@ class Yireo_TrashCan_Model_Object extends Mage_Core_Model_Abstract
     public function restore()
     {
         // Do not continue, if no ID is set
-        if(!$this->getObjectId() > 0) {
-            Mage::getModel('adminhtml/session')->addError(Mage::helper('trashcan')->__('Can not locate object'));
+        if (!$this->getObjectId() > 0) {
+            $this->adminSession->addError($this->helper->__('Can not locate object'));
             return false;
         }
 
         // Check if this object is supported
+        if ($this->isResourceClassAllowed($this->getResourceClass()) === false) {
+            Mage::getModel('adminhtml/session')->addError($this->helper->__('Restoration is not possible, because this resource is not supported'));
+            return false;
+        }
+
+        // Construct the proper resource class
+        $resourceClass = str_replace('_', '/', $this->getResourceClass());
+
+        /** @var Mage_Catalog_Model_Resource_Abstract $resourceModel */
+        $resourceModel = Mage::getResourceSingleton($resourceClass);
+
+        // Unserialize the data
+        try {
+            $this->targetObject = unserialize($this->getResourceData());
+        } catch(Exception $e) {
+            $this->adminSession->addError($this->helper->__('Restore failed'). ': ' . $e->getMessage());
+            return false;
+        }
+
+        $this->targetObject->setId(null);
+
+        // Run the data through the parser model
+        $parserModel = $this->helper->getParserModel($this->getResourceClass());
+        if (!empty($parserModel)) {
+            $parserModel->setData($this->targetObject->getData());
+            $parserModel->restore();
+            $this->targetObject->setData($parserModel->getData());
+        }
+
+        Mage::dispatchEvent('trashcan_object_restore_before', array('object' => $this->targetObject));
+
+        $this->runTransaction($resourceModel);
+
+        // Try to find the last inserted ID
+        if (!$this->targetObject->getId() > 0) {
+            if ($resourceModel->lastInsertId() > 0) {
+                $this->targetObject->setId($resourceModel->lastInsertId());
+            }
+        }
+
+        // Post-restore procedures
+        if (!empty($parserModel)) {
+            $parserModel->setData($this->targetObject->getData());
+            $parserModel->postRestore();
+        }
+
+        Mage::dispatchEvent('trashcan_object_restore_after', array('object' => $this->targetObject, 'model' => $parserModel));
+
+        // Remove the trashed item
+        $this->delete();
+
+        return true;
+    }
+
+    /**
+     * @return Mage_Core_Model_Mysql4_Abstract
+     */
+    public function getResourceModel()
+    {
+        return $this->_getResource();
+    }
+
+    /**
+     * @param $resourceClass
+     *
+     * @return bool
+     */
+    protected function isResourceClassAllowed($resourceClass)
+    {
+        // Check if this object is supported
         $supportedModels = Mage::helper('trashcan')->getSupportedModels();
-        if(array_key_exists($this->getResourceClass(), $supportedModels) == false) {
-            Mage::getModel('adminhtml/session')->addError(Mage::helper('trashcan')->__('Restoration is not possible, because this resource is not supported'));
+        if (array_key_exists($resourceClass, $supportedModels) === false) {
             return false;
         }
 
         // Check the configuration whether trash-can is enabled
-        $config = Mage::helper('trashcan')->setting('enable_'.$this->getResourceClass());
-        if($config != 1) {
-            Mage::getModel('adminhtml/session')->addError(Mage::helper('trashcan')->__('Disabled restoration through settings in the Magento Configuration'));
+        $config = (bool) Mage::helper('trashcan')->setting('enable_' . $resourceClass);
+        if ($config !== true) {
             return false;
         }
-        
-        // Construct the proper resource class
-        $resourceClass = str_replace('_','/', $this->getResourceClass());
-        $resourceModel = Mage::getResourceSingleton($resourceClass);
 
-        // Unserialize the data 
-        $object = unserialize($this->getResourceData());
-        $object->setId(null);
+        return true;
+    }
 
-        // Run the data through the parser model
-        $parserModel = Mage::helper('trashcan')->getParserModel($this->getResourceClass());
-        if (!empty($parserModel)) {
-            $parserModel->setData($object->getData());
-            $parserModel->restore();
-            $object->setData($parserModel->getData());
-        }
-
+    /**
+     * @param Mage_Catalog_Model_Resource_Abstract $resourceModel
+     *
+     * @return bool
+     */
+    protected function runTransaction($resourceModel)
+    {
         // Save it with the resource
         $resourceModel->beginTransaction();
-        try {
-            $resourceModel->save($object);
 
-        } catch (Exception $e){
+        try {
+            $resourceModel->save($this->targetObject);
+
+        } catch (Exception $e) {
             $resourceModel->rollBack();
-            Mage::getModel('adminhtml/session')->addError(Mage::helper('trashcan')->__('Save failed: '.$e->getMessage()));
+            $this->adminSession->addError($this->helper->__('Save failed'). ': ' . $e->getMessage());
             return false;
         }
 
         // Commit the resource
         try {
             $resourceModel->commit();
-        } catch (Exception $e){
+        } catch (Exception $e) {
             $resourceModel->rollBack();
-            Mage::getModel('adminhtml/session')->addError(Mage::helper('trashcan')->__('Commit failed: '.$e->getMessage()));
+            $this->adminSession->addError($this->helper->__('Commit failed'). ': ' . $e->getMessage());
             return false;
         }
 
-        // Try to find the last inserted ID
-        if (!$object->getId() > 0) {
-            if ($resourceModel->lastInsertId() > 0) {
-                $object->setId($resourceModel->lastInsertId());
-            }
-        }
-
-        // Post-restore procedures
-        if (!empty($parserModel)) {
-            $parserModel->setData($object->getData());
-            $parserModel->postRestore();
-        }
-
-        // Remove the trashed item
-        $this->delete();
-
         return true;
+    }
+
+    /**
+     * @return mixed
+     */
+    protected function getLabelFromObject()
+    {
+        $label = $this->targetObject->getData('name');
+        if (empty($label)) {
+            $label = $this->targetObject->getData('title');
+        }
+
+        if (empty($label)) {
+            $label = $this->targetObject->getData('label');
+        }
+
+        return $label;
+    }
+
+    /**
+     * @param $resourceClass
+     *
+     * @return array
+     */
+    protected function getSearchData($resourceClass)
+    {
+        $parserModel = $this->helper->getParserModel($resourceClass);
+
+        if (empty($parserModel)) {
+            return array();
+        }
+
+        $parserModel->setData($this->targetObject->getData());
+        $parserModel->prepare();
+        $this->targetObject->setData($parserModel->getData());
+
+        return $parserModel->getSearchData();
+    }
+
+    /**
+     * @return mixed
+     */
+    protected function getResourceClassFromObject()
+    {
+        $resourceClass = preg_replace('/\//', '_', $this->targetObject->getResourceName(), 1);
+
+        if (empty($resourceClass)) {
+            $resourceClass = $this->targetObject->getResourceName();
+        }
+
+        return $resourceClass;
     }
 }
