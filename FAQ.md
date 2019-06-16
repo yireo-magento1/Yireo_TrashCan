@@ -1,0 +1,4 @@
+# Can I restore products that were deleted before Trashcan was installed?
+No, you can't - it would defy all logic. If you want to restore something, you will need to restore it from a backup. However, if you did not create a backup before, you don't have something to restore from either. Our Trashcan allows you to create a backup of every Magento product, provided that you install the extension before you are actually deleting the product.
+
+If you have deleted products before installing Trashcan, it is not inserted in any trashcan functionality either but you have simply just deleted that information permanently. This is exactly the functionality that our extension improves. The only way to recover something from Magento when you did not use Trashcan to begin with, is to do a recovery of your entire Magento site from your hosters backup. If there is no backup at all, there is no point in trying to recover anything.
